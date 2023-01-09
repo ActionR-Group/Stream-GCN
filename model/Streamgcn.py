@@ -331,9 +331,7 @@ class Model(nn.Module):
         self.data_bn = nn.BatchNorm1d(num_person * in_channels * num_point)
 
         base_channel = 64
-        self.dimZ = 256
 
-        self.prior_Z_distr = torch.empty(num_class, base_channel * 4)
         self.l1 = TCN_GCN_unit(in_channels, base_channel, A, residual=False, adaptive=adaptive)
         self.l2 = TCN_GCN_unit(base_channel, base_channel, A, adaptive=adaptive)
         self.l3 = TCN_GCN_unit(base_channel, base_channel, A, adaptive=adaptive)
@@ -345,16 +343,14 @@ class Model(nn.Module):
         self.l9 = TCN_GCN_unit(base_channel * 4, base_channel * 4, A, adaptive=adaptive)
         self.l10 = TCN_GCN_unit(base_channel * 4, base_channel * 4, A,
                                 adaptive=adaptive)
-        self.fc = nn.Linear(base_channel * 4, base_channel * 4)
         self.fc_kl = nn.Linear(base_channel * 4, base_channel * 4)
         self.fc_mu = nn.Linear(base_channel * 4, base_channel * 4)
         self.fc_var = nn.Linear(base_channel * 4, base_channel * 4)
         self.classify = nn.Linear(base_channel * 4, num_class)
         self.classify_z = nn.Linear(base_channel * 4, num_class)
 
-        nn.init.xavier_uniform_(self.fc.weight, gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self.fc_mu.weight, gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self.fc_var.weight, gain=nn.init.calculate_gain('relu'))
+        nn.init.normal_(self.fc_mu.weight, 0, math.sqrt(2. / num_class))
+        nn.init.normal_(self.fc_var.weight, 0, math.sqrt(2. / num_class))
         nn.init.normal_(self.classify.weight, 0, math.sqrt(2. / num_class))
         nn.init.normal_(self.classify_z.weight, 0, math.sqrt(2. / num_class))
         bn_init(self.data_bn, 1)
@@ -378,7 +374,7 @@ class Model(nn.Module):
 
         return mu, log_var
 
-    def reparameterize(self, mu, logvar):
+    def reparameterize(self, mu, var):
         """
         Reparameterization trick to sample from N(mu, var) from
         N(0,1).
@@ -386,7 +382,7 @@ class Model(nn.Module):
         :param logvar: (Tensor) Standard deviation of the latent Gaussian [B x D]
         :return: (Tensor) [B x D]
         """
-        std = torch.exp(0.5 * logvar)
+        std = torch.exp(0.5 * var)
         noise = torch.clamp(std, max=100)
         eps = torch.rand_like(noise).normal_()
         return eps * noise + mu
@@ -415,14 +411,12 @@ class Model(nn.Module):
         c_new = x.size(1)
         x = x.view(N, M, c_new, -1)
         x = x.mean(3).mean(1)  # bs out_channels
-
-        x = F.relu(self.fc(x))
         x = self.drop_out(x)
 
-        mu, log_var = self.encode(x)
-        encoder_Z_distr = self.reparameterize(mu, log_var)
+        mu, var = self.encode(x)
+        encoder_Z_distr = self.reparameterize(mu, var)
 
-        prior_Z_distr = torch.empty(encoder_Z_distr.shape[0], encoder_Z_distr.shape[1]).cuda()
+        prior_Z_distr = nn.Parameter(torch.randn(encoder_Z_distr.shape[0], encoder_Z_distr.shape[1]), requires_grad=True).cuda()
         output = self.classify(encoder_Z_distr)
 
         z_given_v = self.fc_kl(encoder_Z_distr)
