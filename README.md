@@ -94,12 +94,13 @@ python main.py --config config/ucla/default.yaml --work-dir work_dir/ucla/Stream
 python main.py --config <work_dir>/config.yaml --work-dir <work_dir> --phase test --save-score True --weights <work_dir>/xxx.pt --device 0
 ```
 
-- To ensemble the results of different modalities, run 
+- To ensemble the results of different streams, run 
 ```
-# Example: ensemble four modalities of StreamGCN on NTU RGB+D cross subject
+# Example: ensemble six streams of StreamGCN on NTU RGB+D cross subject
 python ensemble.py --dataset ntu/csub --joint-dir work_dir/ntu/csub/Streamgcn_joint ... --joint-curl-dir work_dir/ntu/csub/Streamgcn_acc ... 
 
 ```
 This repo is based on [CTR-GCN](https://github.com/swsong89/ctrgcn)
+
 Thanks to the original authors for their work!
 
