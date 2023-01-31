@@ -100,7 +100,7 @@ python main.py --config <work_dir>/config.yaml --work-dir <work_dir> --phase tes
 python ensemble.py --dataset ntu/csub --joint-dir work_dir/ntu/csub/Streamgcn_joint ... --joint-curl-dir work_dir/ntu/csub/Streamgcn_acc ... 
 
 ```
-This repo is based on [CTR-GCN](https://github.com/swsong89/ctrgcn)
+This repo is based on [CTR-GCN](https://github.com/Uason-Chen/CTR-GCN)
 
 Thanks to the original authors for their work!
 
